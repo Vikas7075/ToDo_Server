@@ -2,49 +2,49 @@ import { User } from "../models/user.model.js";
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { setCookie } from "../utils/features.js";
+import ErrorHandler from "../middlewares/error.js";
 
 export const getAllUsers = async (req, res) => {
 
 };
 
 export const login = async (req, res, next) => {
-    const { email, password } = req.body;
+    try {
+        const { email, password } = req.body;
 
-    const user = await User.findOne({ email }).select("+password");
+        const user = await User.findOne({ email }).select("+password");
 
-    if (!user)
-        return res.status(404).json({
-            success: false,
-            message: "Invalid Email or Password...."
-        });
-    const isMatch = await bcrypt.compare(password, user.password);
+        if (!user)
+            return next(new ErrorHandler("Invalid Email or Password....", 404))
 
-    if (!isMatch)
-        return res.status(404).json({
-            success: false,
-            message: "Invalid Email or Password...."
-        });
+        const isMatch = await bcrypt.compare(password, user.password);
 
-    setCookie(user, res, `Welcome back ${user.name}`, 200);
+        if (!isMatch) return next(new ErrorHandler("Invalid Email or Password....", 404))
+
+        setCookie(user, res, `Welcome back ${user.name}`, 200);
+    } catch (error) {
+        next(error);
+
+    }
 };
 
 export const register = async (req, res) => {
 
-    const { name, email, password } = req.body;
+    try {
+        const { name, email, password } = req.body;
 
-    let user = await User.findOne({ email });
+        let user = await User.findOne({ email });
 
-    if (user)
-        return res.status(404).json({
-            success: false,
-            message: "User Already Exit...."
-        })
+        if (user) return next(new ErrorHandler("User Already Exit...", 400))
 
-    const hashPassword = await bcrypt.hash(password, 10);
+        const hashPassword = await bcrypt.hash(password, 10);
 
-    user = await User.create({ name, email, password: hashPassword });
+        user = await User.create({ name, email, password: hashPassword });
 
-    setCookie(user, res, "Registered Successfully..", 201)
+        setCookie(user, res, "Registered Successfully..", 201);
+    } catch (error) {
+        next(error);
+    }
 };
 
 export const getMyProfile = (req, res) => {
@@ -58,7 +58,12 @@ export const getMyProfile = (req, res) => {
 
 export const logout = (req, res) => {
 
-    res.status(200).cookie("token", "", { expires: new Date(Date.now()) }).json({
+    res.status(200).cookie("token", "", {
+        expires: new Date(Date.now()),
+        sameSite: process.env.NODE_ENV === "Development" ? "lax" : "none",
+        secure: process.env.NODE_ENV === "Development" ? false : true,
+    }).json({
+    }).json({
         success: true,
         user: req.user,
     })
