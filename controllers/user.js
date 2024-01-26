@@ -1,10 +1,10 @@
 import { User } from "../models/user.model.js";
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
 import { setCookie } from "../utils/features.js";
 import ErrorHandler from "../middlewares/error.js";
 
 export const getAllUsers = async (req, res) => {
+
 
 };
 
@@ -24,11 +24,12 @@ export const login = async (req, res, next) => {
         setCookie(user, res, `Welcome back ${user.name}`, 200);
     } catch (error) {
         next(error);
+        console.log(error);
 
     }
 };
 
-export const register = async (req, res) => {
+export const register = async (req, res, next) => {
 
     try {
         const { name, email, password } = req.body;
